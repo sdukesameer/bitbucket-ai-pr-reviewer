@@ -1,225 +1,231 @@
 <!DOCTYPE html>
 <html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitbucket AI PR Reviewer - Enhanced</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Bitbucket AI PR Reviewer</title>
-        <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-        <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-        <script src="https://cdn.tailwindcss.com"></script>
-    </head>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-    <body>
-        <div id="root"></div>
+        // Icon components
+        const AlertCircle = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>;
+        const RefreshCw = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" /></svg>;
+        const Loader2 = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>;
+        const CheckCircle = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>;
+        const Settings = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m18.2-5.2l-4.2 4.2m0 6l4.2 4.2" /></svg>;
+        const MessageSquare = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
+        const History = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></svg>;
+        const FileCode = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>;
+        const ChevronRight = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>;
+        const ChevronDown = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>;
+        const Folder = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>;
+        const GitPullRequest = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3" /><circle cx="6" cy="6" r="3" /><path d="M13 6h3a2 2 0 0 1 2 2v7" /><line x1="6" y1="9" x2="6" y2="21" /></svg>;
+        const Sparkles = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" /></svg>;
 
-        <script type="text/babel">
-            const { useState, useEffect } = React;
+        function BitbucketPRReviewer() {
+            const [config, setConfig] = useState({
+                workspace: '',
+                repoSlug: '',
+                username: '',
+                appPassword: '',
+                aiProvider: 'gemini',
+                apiKey: ''
+            });
 
-            // Icon components
-            const AlertCircle = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>;
-            const RefreshCw = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" /></svg>;
-            const Loader2 = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>;
-            const CheckCircle = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>;
-            const Settings = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m18.2-5.2l-4.2 4.2m0 6l4.2 4.2" /></svg>;
-            const MessageSquare = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
-            const History = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></svg>;
-            const File = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><polyline points="13 2 13 9 20 9" /></svg>;
-            const FileCode = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>;
-            const ChevronRight = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>;
-            const Columns = ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" /></svg>;
+            const [allPRs, setAllPRs] = useState([]);
+            const [prFilter, setPrFilter] = useState('open');
+            const [selectedPR, setSelectedPR] = useState(null);
+            const [diffData, setDiffData] = useState([]);
+            const [fileTree, setFileTree] = useState({});
+            const [expandedFolders, setExpandedFolders] = useState({});
+            const [selectedFile, setSelectedFile] = useState(null);
+            const [aiSuggestions, setAiSuggestions] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [reviewing, setReviewing] = useState(false);
+            const [error, setError] = useState('');
+            const [showConfig, setShowConfig] = useState(false);
 
-            function BitbucketPRReviewer() {
-                const [config, setConfig] = useState({
-                    workspace: '',
-                    repoSlug: '',
-                    username: '',
-                    appPassword: '',
-                    aiProvider: 'gemini',
-                    apiKey: ''
+            useEffect(() => {
+                loadConfig();
+            }, []);
+
+            const loadConfig = () => {
+                const saved = localStorage.getItem('bb_config');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    setConfig(parsed);
+                    if (parsed.workspace && parsed.repoSlug) {
+                        fetchAllPRs(parsed);
+                    }
+                } else {
+                    setShowConfig(true);
+                }
+            };
+
+            const saveConfig = () => {
+                localStorage.setItem('bb_config', JSON.stringify(config));
+                setShowConfig(false);
+                fetchAllPRs(config);
+            };
+
+            const getAuthHeaders = (cfg = config) => {
+                const auth = btoa(`${cfg.username}:${cfg.appPassword}`);
+                return { Authorization: `Basic ${auth}` };
+            };
+
+            const fetchAllPRs = async (cfg = config) => {
+                setLoading(true);
+                setError('');
+                try {
+                    const states = ['OPEN', 'MERGED', 'DECLINED', 'SUPERSEDED'];
+                    const allResults = [];
+
+                    for (const state of states) {
+                        const url = `https://api.bitbucket.org/2.0/repositories/${cfg.workspace}/${cfg.repoSlug}/pullrequests?state=${state}&pagelen=25`;
+                        const response = await fetch(url, { headers: getAuthHeaders(cfg) });
+
+                        if (!response.ok) {
+                            throw new Error(`Failed to fetch ${state} PRs (${response.status})`);
+                        }
+
+                        const data = await response.json();
+                        allResults.push(...(data.values || []).map(pr => ({ ...pr, prState: state })));
+                    }
+
+                    // Sort by updated date, most recent first
+                    allResults.sort((a, b) => new Date(b.updated_on) - new Date(a.updated_on));
+                    setAllPRs(allResults.slice(0, 25));
+                } catch (err) {
+                    setError(err.message);
+                    console.error('Fetch error:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const buildFileTree = (files) => {
+                const tree = {};
+
+                files.forEach(file => {
+                    const parts = file.fileName.split('/');
+                    let current = tree;
+
+                    parts.forEach((part, idx) => {
+                        if (idx === parts.length - 1) {
+                            // File
+                            if (!current._files) current._files = [];
+                            current._files.push(file);
+                        } else {
+                            // Folder
+                            if (!current[part]) current[part] = {};
+                            current = current[part];
+                        }
+                    });
                 });
 
-                const [prs, setPrs] = useState([]);
-                const [selectedPR, setSelectedPR] = useState(null);
-                const [diffData, setDiffData] = useState([]);
-                const [selectedFile, setSelectedFile] = useState(null);
-                const [diffViewMode, setDiffViewMode] = useState('unified');
-                const [aiSuggestions, setAiSuggestions] = useState([]);
-                const [reviewHistory, setReviewHistory] = useState([]);
-                const [loading, setLoading] = useState(false);
-                const [reviewing, setReviewing] = useState(false);
-                const [error, setError] = useState('');
-                const [showConfig, setShowConfig] = useState(false);
-                const [activeTab, setActiveTab] = useState('diff');
-                const [commentDraft, setCommentDraft] = useState({});
+                return tree;
+            };
 
-                useEffect(() => {
-                    loadConfig();
-                    loadHistory();
-                }, []);
+            const parseDiff = (diffText) => {
+                const files = [];
+                const chunks = diffText.split('diff --git');
 
-                const loadConfig = () => {
-                    const saved = localStorage.getItem('bb_config');
-                    if (saved) {
-                        const parsed = JSON.parse(saved);
-                        setConfig(parsed);
-                        if (parsed.workspace && parsed.repoSlug) {
-                            fetchPRs(parsed);
-                        }
-                    } else {
-                        setShowConfig(true);
-                    }
-                };
+                chunks.slice(1).forEach(chunk => {
+                    const lines = chunk.split('\n');
+                    const fileName = lines[0].match(/a\/(.*?) b\//)?.[1] || 'unknown';
+                    const changes = [];
+                    let oldLine = 0, newLine = 0;
+                    let addedLines = 0, removedLines = 0;
 
-                const loadHistory = () => {
-                    const saved = localStorage.getItem('review_history');
-                    if (saved) {
-                        setReviewHistory(JSON.parse(saved));
-                    }
-                };
-
-                const saveConfig = () => {
-                    localStorage.setItem('bb_config', JSON.stringify(config));
-                    setShowConfig(false);
-                    fetchPRs(config);
-                };
-
-                const saveToHistory = (pr, suggestions) => {
-                    const newHistory = [{
-                        id: Date.now(),
-                        prId: pr.id,
-                        prTitle: pr.title,
-                        timestamp: new Date().toISOString(),
-                        suggestions: suggestions
-                    }, ...reviewHistory].slice(0, 20);
-
-                    setReviewHistory(newHistory);
-                    localStorage.setItem('review_history', JSON.stringify(newHistory));
-                };
-
-                const getAuthHeaders = (cfg = config) => {
-                    const auth = btoa(`${cfg.username}:${cfg.appPassword}`);
-                    return { Authorization: `Basic ${auth}` };
-                };
-
-                const fetchPRs = async (cfg = config) => {
-                    setLoading(true);
-                    setError('');
-                    try {
-                        const url = `https://api.bitbucket.org/2.0/repositories/${cfg.workspace}/${cfg.repoSlug}/pullrequests?state=OPEN`;
-                        console.log('Fetching PRs from:', url);
-
-                        const response = await fetch(url, {
-                            headers: getAuthHeaders(cfg)
-                        });
-
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            console.error('API Error:', response.status, errorText);
-                            throw new Error(`Failed to fetch PRs (${response.status}). Check credentials and repository access.`);
-                        }
-                        const data = await response.json();
-                        setPrs(data.values || []);
-
-                        if (data.values && data.values.length === 0) {
-                            setError('No open pull requests found in this repository.');
-                        }
-                    } catch (err) {
-                        setError(err.message);
-                        console.error('Fetch error:', err);
-                    } finally {
-                        setLoading(false);
-                    }
-                };
-
-                const parseDiff = (diffText) => {
-                    const files = [];
-                    const chunks = diffText.split('diff --git');
-
-                    chunks.slice(1).forEach(chunk => {
-                        const lines = chunk.split('\n');
-                        const fileName = lines[0].match(/a\/(.*?) b\//)?.[1] || 'unknown';
-                        const changes = [];
-                        let oldLine = 0, newLine = 0;
-                        let addedLines = 0, removedLines = 0;
-
-                        lines.forEach(line => {
-                            if (line.startsWith('@@')) {
-                                const match = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
-                                if (match) {
-                                    oldLine = parseInt(match[1]);
-                                    newLine = parseInt(match[2]);
-                                }
-                            } else if (line.startsWith('-') && !line.startsWith('---')) {
-                                changes.push({ type: 'removed', content: line.slice(1), oldLine: oldLine++, newLine: null });
-                                removedLines++;
-                            } else if (line.startsWith('+') && !line.startsWith('+++')) {
-                                changes.push({ type: 'added', content: line.slice(1), oldLine: null, newLine: newLine++ });
-                                addedLines++;
-                            } else if (line.startsWith(' ')) {
-                                changes.push({ type: 'unchanged', content: line.slice(1), oldLine: oldLine++, newLine: newLine++ });
+                    lines.forEach(line => {
+                        if (line.startsWith('@@')) {
+                            const match = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
+                            if (match) {
+                                oldLine = parseInt(match[1]);
+                                newLine = parseInt(match[2]);
                             }
-                        });
-
-                        files.push({ fileName, changes, addedLines, removedLines });
+                        } else if (line.startsWith('-') && !line.startsWith('---')) {
+                            changes.push({ type: 'removed', content: line.slice(1), oldLine: oldLine++, newLine: null });
+                            removedLines++;
+                        } else if (line.startsWith('+') && !line.startsWith('+++')) {
+                            changes.push({ type: 'added', content: line.slice(1), oldLine: null, newLine: newLine++ });
+                            addedLines++;
+                        } else if (line.startsWith(' ')) {
+                            changes.push({ type: 'unchanged', content: line.slice(1), oldLine: oldLine++, newLine: newLine++ });
+                        }
                     });
 
-                    return files;
-                };
+                    files.push({ fileName, changes, addedLines, removedLines });
+                });
 
-                const selectPR = async (pr) => {
-                    setSelectedPR(pr);
-                    setAiSuggestions([]);
-                    setSelectedFile(null);
-                    setActiveTab('diff');
-                    setLoading(true);
+                return files;
+            };
 
-                    try {
-                        const response = await fetch(
-                            `https://api.bitbucket.org/2.0/repositories/${config.workspace}/${config.repoSlug}/pullrequests/${pr.id}/diff`,
-                            { headers: getAuthHeaders() }
-                        );
+            const selectPR = async (pr) => {
+                setSelectedPR(pr);
+                setAiSuggestions([]);
+                setSelectedFile(null);
+                setExpandedFolders({});
+                setLoading(true);
 
-                        if (!response.ok) {
-                            throw new Error(`Failed to load diff (${response.status})`);
-                        }
+                try {
+                    const response = await fetch(
+                        `https://api.bitbucket.org/2.0/repositories/${config.workspace}/${config.repoSlug}/pullrequests/${pr.id}/diff`,
+                        { headers: getAuthHeaders() }
+                    );
 
-                        const diffText = await response.text();
-                        const parsed = parseDiff(diffText);
-                        setDiffData(parsed);
-                        if (parsed.length > 0) {
-                            setSelectedFile(parsed[0]);
-                        }
-                    } catch (err) {
-                        setError('Failed to load diff: ' + err.message);
-                    } finally {
-                        setLoading(false);
+                    if (!response.ok) {
+                        throw new Error(`Failed to load diff (${response.status})`);
                     }
-                };
 
-                const reviewWithAI = async () => {
-                    if (!selectedPR || diffData.length === 0) return;
+                    const diffText = await response.text();
+                    const parsed = parseDiff(diffText);
+                    setDiffData(parsed);
 
-                    setReviewing(true);
-                    setError('');
+                    const tree = buildFileTree(parsed);
+                    setFileTree(tree);
 
-                    try {
-                        const diffSummary = diffData.map(file =>
-                            `File: ${file.fileName}\n${file.changes.map(c =>
-                                c.type === 'added' ? `+${c.content}` :
-                                    c.type === 'removed' ? `-${c.content}` : ` ${c.content}`
-                            ).join('\n')}`
-                        ).join('\n\n');
+                    if (parsed.length > 0) {
+                        setSelectedFile(parsed[0]);
+                    }
+                } catch (err) {
+                    setError('Failed to load diff: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
 
-                        const prompt = `Review this pull request code changes. For each file, provide specific suggestions with:
+            const reviewWithAI = async (singleFile = null) => {
+                if (!selectedPR || diffData.length === 0) return;
+
+                setReviewing(true);
+                setError('');
+
+                try {
+                    const filesToReview = singleFile ? [singleFile] : diffData;
+
+                    const diffSummary = filesToReview.map(file =>
+                        `File: ${file.fileName}\n${file.changes.map(c =>
+                            c.type === 'added' ? `+${c.content}` :
+                            c.type === 'removed' ? `-${c.content}` : ` ${c.content}`
+                        ).join('\n')}`
+                    ).join('\n\n');
+
+                    const prompt = `Review this ${singleFile ? 'file change' : 'pull request'}. Provide specific suggestions with:
 1. Line number reference
 2. Issue severity (critical/warning/suggestion)
 3. Short description
 4. Suggested fix
 
-PR: ${selectedPR.title}
-Description: ${selectedPR.description || 'No description'}
+${singleFile ? 'File' : 'PR'}: ${singleFile ? singleFile.fileName : selectedPR.title}
 
 Changes:
 ${diffSummary}
@@ -227,548 +233,517 @@ ${diffSummary}
 Return as JSON array:
 [{"file":"filename","line":10,"severity":"warning","issue":"Description","suggestion":"Fix"}]`;
 
-                        let reviewText = '';
+                    let reviewText = '';
 
-                        if (config.aiProvider === 'gemini') {
-                            const response = await fetch(
-                                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${config.apiKey}`,
-                                {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        contents: [{ parts: [{ text: prompt }] }]
-                                    })
-                                }
-                            );
-
-                            if (!response.ok) {
-                                const errorData = await response.json();
-                                throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
-                            }
-                            const data = await response.json();
-                            reviewText = data.candidates[0].content.parts[0].text;
-                        } else {
-                            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${config.apiKey}`
-                                },
-                                body: JSON.stringify({
-                                    model: 'gpt-4o',
-                                    messages: [{ role: 'user', content: prompt }]
-                                })
-                            });
-
-                            if (!response.ok) {
-                                const errorData = await response.json();
-                                throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
-                            }
-                            const data = await response.json();
-                            reviewText = data.choices[0].message.content;
-                        }
-
-                        const jsonMatch = reviewText.match(/\[[\s\S]*\]/);
-                        let suggestions = [];
-
-                        if (jsonMatch) {
-                            suggestions = JSON.parse(jsonMatch[0]);
-                        } else {
-                            suggestions = [{
-                                file: 'General',
-                                line: 0,
-                                severity: 'suggestion',
-                                issue: 'Review Summary',
-                                suggestion: reviewText
-                            }];
-                        }
-
-                        setAiSuggestions(suggestions);
-                        saveToHistory(selectedPR, suggestions);
-                        setActiveTab('suggestions');
-                    } catch (err) {
-                        setError(`Review failed: ${err.message}`);
-                        console.error('AI Review error:', err);
-                    } finally {
-                        setReviewing(false);
-                    }
-                };
-
-                const postComment = async (suggestion) => {
-                    try {
-                        const comment = commentDraft[suggestion.line] || suggestion.suggestion;
-
+                    if (config.aiProvider === 'gemini') {
                         const response = await fetch(
-                            `https://api.bitbucket.org/2.0/repositories/${config.workspace}/${config.repoSlug}/pullrequests/${selectedPR.id}/comments`,
+                            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${config.apiKey}`,
                             {
                                 method: 'POST',
-                                headers: {
-                                    ...getAuthHeaders(),
-                                    'Content-Type': 'application/json'
-                                },
+                                headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                    content: { raw: `🤖 AI Review:\n\n${comment}` },
-                                    inline: {
-                                        path: suggestion.file,
-                                        to: suggestion.line
-                                    }
+                                    contents: [{ parts: [{ text: prompt }] }]
                                 })
                             }
                         );
 
                         if (!response.ok) {
-                            throw new Error(`Failed to post comment (${response.status})`);
+                            const errorData = await response.json();
+                            throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
                         }
+                        const data = await response.json();
+                        reviewText = data.candidates[0].content.parts[0].text;
+                    } else {
+                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${config.apiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: 'gpt-4o',
+                                messages: [{ role: 'user', content: prompt }]
+                            })
+                        });
 
-                        alert('Comment posted successfully!');
-                    } catch (err) {
-                        alert('Failed to post comment: ' + err.message);
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+                        }
+                        const data = await response.json();
+                        reviewText = data.choices[0].message.content;
                     }
-                };
 
-                const renderUnifiedDiff = (file) => {
-                    return (
-                        <div className="font-mono text-xs">
-                            {file.changes.map((change, i) => (
-                                <div
-                                    key={i}
-                                    className={`flex ${change.type === 'added' ? 'bg-green-900/30' :
-                                        change.type === 'removed' ? 'bg-red-900/30' : ''}`}
-                                >
-                                    <span className="px-3 py-1 text-gray-500 select-none w-12 text-right">{change.oldLine || ''}</span>
-                                    <span className="px-3 py-1 text-gray-500 select-none w-12 text-right">{change.newLine || ''}</span>
-                                    <span className={`px-3 py-1 flex-1 ${change.type === 'added' ? 'text-green-300' :
-                                        change.type === 'removed' ? 'text-red-300' : 'text-gray-300'}`}>
-                                        {change.type === 'added' ? '+' : change.type === 'removed' ? '-' : ' '}
-                                        {change.content}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    );
-                };
+                    const jsonMatch = reviewText.match(/\[[\s\S]*\]/);
+                    let suggestions = [];
 
-                const renderSplitDiff = (file) => {
-                    const leftChanges = [];
-                    const rightChanges = [];
+                    if (jsonMatch) {
+                        suggestions = JSON.parse(jsonMatch[0]);
+                    } else {
+                        suggestions = [{
+                            file: singleFile?.fileName || 'General',
+                            line: 0,
+                            severity: 'suggestion',
+                            issue: 'Review Summary',
+                            suggestion: reviewText
+                        }];
+                    }
 
-                    file.changes.forEach(change => {
-                        if (change.type === 'removed') {
-                            leftChanges.push(change);
-                            rightChanges.push({ type: 'empty', content: '', oldLine: null, newLine: null });
-                        } else if (change.type === 'added') {
-                            leftChanges.push({ type: 'empty', content: '', oldLine: null, newLine: null });
-                            rightChanges.push(change);
-                        } else {
-                            leftChanges.push(change);
-                            rightChanges.push(change);
-                        }
-                    });
-
-                    return (
-                        <div className="flex font-mono text-xs">
-                            <div className="flex-1 border-r border-gray-700">
-                                {leftChanges.map((change, i) => (
-                                    <div
-                                        key={i}
-                                        className={`flex ${change.type === 'removed' ? 'bg-red-900/30' : ''}`}
-                                    >
-                                        <span className="px-3 py-1 text-gray-500 select-none w-12 text-right">{change.oldLine || ''}</span>
-                                        <span className={`px-3 py-1 flex-1 ${change.type === 'removed' ? 'text-red-300' : 'text-gray-300'}`}>
-                                            {change.type === 'removed' ? '-' : change.type === 'unchanged' ? ' ' : ''}
-                                            {change.content}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="flex-1">
-                                {rightChanges.map((change, i) => (
-                                    <div
-                                        key={i}
-                                        className={`flex ${change.type === 'added' ? 'bg-green-900/30' : ''}`}
-                                    >
-                                        <span className="px-3 py-1 text-gray-500 select-none w-12 text-right">{change.newLine || ''}</span>
-                                        <span className={`px-3 py-1 flex-1 ${change.type === 'added' ? 'text-green-300' : 'text-gray-300'}`}>
-                                            {change.type === 'added' ? '+' : change.type === 'unchanged' ? ' ' : ''}
-                                            {change.content}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    );
-                };
-
-                if (showConfig) {
-                    return (
-                        <div className="min-h-screen bg-gray-900 p-6">
-                            <div className="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-xl p-6">
-                                <h1 className="text-2xl font-bold text-white mb-6">⚙️ Configuration</h1>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">Bitbucket Workspace</label>
-                                        <input
-                                            type="text"
-                                            value={config.workspace}
-                                            onChange={e => setConfig({ ...config, workspace: e.target.value })}
-                                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                            placeholder="folk2folk"
-                                        />
-                                        <p className="text-xs text-gray-400 mt-1">Just the workspace name (e.g., "folk2folk")</p>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">Repository Slug</label>
-                                        <input
-                                            type="text"
-                                            value={config.repoSlug}
-                                            onChange={e => setConfig({ ...config, repoSlug: e.target.value })}
-                                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                            placeholder="uk-folk2folk-salesforce"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">Atlassian Account Email</label>
-                                        <input
-                                            type="text"
-                                            value={config.username}
-                                            onChange={e => setConfig({ ...config, username: e.target.value })}
-                                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                            placeholder="your-email@example.com"
-                                        />
-                                        <p className="text-xs text-gray-400 mt-1">Your Atlassian account email</p>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">Atlassian API Token</label>
-                                        <input
-                                            type="password"
-                                            value={config.appPassword}
-                                            onChange={e => setConfig({ ...config, appPassword: e.target.value })}
-                                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                        />
-                                        <p className="text-xs text-gray-400 mt-1">
-                                            Create at: <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" className="text-blue-400 hover:underline">https://id.atlassian.com/manage-profile/security/api-tokens</a>
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">AI Provider</label>
-                                        <select
-                                            value={config.aiProvider}
-                                            onChange={e => setConfig({ ...config, aiProvider: e.target.value })}
-                                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                        >
-                                            <option value="gemini">Google Gemini 2.5 Flash (Free)</option>
-                                            <option value="openai">OpenAI GPT-4o</option>
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">AI API Key</label>
-                                        <input
-                                            type="password"
-                                            value={config.apiKey}
-                                            onChange={e => setConfig({ ...config, apiKey: e.target.value })}
-                                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                        />
-                                        <p className="text-xs text-gray-400 mt-1">
-                                            {config.aiProvider === 'gemini' ?
-                                                <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-blue-400 hover:underline">Get from: aistudio.google.com/app/apikey</a> :
-                                                <a href="https://platform.openai.com/api-keys" target="_blank" className="text-blue-400 hover:underline">Get from: platform.openai.com/api-keys</a>
-                                            }
-                                        </p>
-                                    </div>
-
-                                    <button
-                                        onClick={saveConfig}
-                                        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-medium"
-                                    >
-                                        💾 Save Configuration
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    );
+                    setAiSuggestions(prev => [...prev, ...suggestions]);
+                } catch (err) {
+                    setError(`Review failed: ${err.message}`);
+                    console.error('AI Review error:', err);
+                } finally {
+                    setReviewing(false);
                 }
+            };
 
-                return (
-                    <div className="min-h-screen bg-gray-900 text-white">
-                        <div className="border-b border-gray-800 bg-gray-950">
-                            <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">
-                                <div>
-                                    <h1 className="text-2xl font-bold">🤖 AI PR Reviewer</h1>
-                                    <p className="text-sm text-gray-400">{config.workspace}/{config.repoSlug}</p>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setActiveTab('history')}
-                                        className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700"
-                                    >
-                                        <History className="w-4 h-4" />
-                                        History
-                                    </button>
-                                    <button
-                                        onClick={() => setShowConfig(true)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700"
-                                    >
-                                        <Settings className="w-4 h-4" />
-                                        Settings
-                                    </button>
-                                    <button
-                                        onClick={() => fetchPRs()}
-                                        disabled={loading}
-                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
-                                    >
-                                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                                        Refresh
-                                    </button>
-                                </div>
+            const toggleFolder = (path) => {
+                setExpandedFolders(prev => ({
+                    ...prev,
+                    [path]: !prev[path]
+                }));
+            };
+
+            const renderFileTree = (tree, path = '') => {
+                return Object.entries(tree).map(([key, value]) => {
+                    if (key === '_files') {
+                        return value.map((file, idx) => (
+                            <div
+                                key={`${path}/${file.fileName}-${idx}`}
+                                onClick={() => setSelectedFile(file)}
+                                className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer ml-6 ${
+                                    selectedFile?.fileName === file.fileName
+                                        ? 'bg-blue-900/50 text-blue-300'
+                                        : 'hover:bg-gray-700 text-gray-300'
+                                }`}
+                            >
+                                <FileCode className="w-4 h-4 flex-shrink-0" />
+                                <span className="text-sm truncate">{file.fileName.split('/').pop()}</span>
+                                <span className="text-xs ml-auto flex gap-2">
+                                    <span className="text-green-400">+{file.addedLines}</span>
+                                    <span className="text-red-400">-{file.removedLines}</span>
+                                </span>
                             </div>
+                        ));
+                    }
+
+                    const currentPath = path ? `${path}/${key}` : key;
+                    const isExpanded = expandedFolders[currentPath];
+
+                    return (
+                        <div key={currentPath}>
+                            <div
+                                onClick={() => toggleFolder(currentPath)}
+                                className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-700"
+                                style={{ paddingLeft: `${(path.split('/').length) * 12 + 12}px` }}
+                            >
+                                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                <Folder className="w-4 h-4 text-blue-400" />
+                                <span className="text-sm font-medium text-gray-200">{key}</span>
+                            </div>
+                            {isExpanded && renderFileTree(value, currentPath)}
                         </div>
+                    );
+                });
+            };
 
-                        {error && (
-                            <div className="mx-6 mt-4 p-4 bg-red-900/50 border border-red-700 rounded flex items-start gap-2">
-                                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                                <span className="text-red-200">{error}</span>
-                            </div>
-                        )}
+            const filteredPRs = allPRs.filter(pr => {
+                if (prFilter === 'all') return true;
+                if (prFilter === 'open') return pr.prState === 'OPEN';
+                if (prFilter === 'merged') return pr.prState === 'MERGED';
+                if (prFilter === 'declined') return pr.prState === 'DECLINED';
+                if (prFilter === 'draft') return pr.prState === 'OPEN' && pr.description?.includes('[DRAFT]');
+                return true;
+            });
 
-                        <div className="flex h-[calc(100vh-120px)]">
-                            <div className="w-80 border-r border-gray-800 bg-gray-950 overflow-y-auto">
-                                <div className="p-4">
-                                    <h2 className="font-semibold mb-3 text-gray-300">Open Pull Requests ({prs.length})</h2>
-                                    {loading ? (
-                                        <div className="flex justify-center p-8">
-                                            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {prs.map(pr => (
-                                                <div
-                                                    key={pr.id}
-                                                    onClick={() => selectPR(pr)}
-                                                    className={`p-3 rounded cursor-pointer transition ${selectedPR?.id === pr.id ? 'bg-blue-900/50 border border-blue-700' : 'bg-gray-800 hover:bg-gray-700'}`}
-                                                >
-                                                    <div className="font-medium text-sm mb-1">#{pr.id} {pr.title}</div>
-                                                    <div className="text-xs text-gray-400">{pr.author.display_name}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+            if (showConfig) {
+                return (
+                    <div className="min-h-screen bg-gray-900 p-6">
+                        <div className="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-xl p-6">
+                            <h1 className="text-2xl font-bold text-white mb-6">⚙️ Configuration</h1>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Bitbucket Workspace</label>
+                                    <input
+                                        type="text"
+                                        value={config.workspace}
+                                        onChange={e => setConfig({ ...config, workspace: e.target.value })}
+                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                        placeholder="your-workspace"
+                                    />
                                 </div>
-                            </div>
 
-                            <div className="flex-1 flex flex-col">
-                                {selectedPR ? (
-                                    <>
-                                        <div className="border-b border-gray-800 bg-gray-950 p-4">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <h2 className="text-xl font-bold">#{selectedPR.id} {selectedPR.title}</h2>
-                                                    <p className="text-sm text-gray-400 mt-1">{selectedPR.description || 'No description'}</p>
-                                                </div>
-                                                <button
-                                                    onClick={reviewWithAI}
-                                                    disabled={reviewing || diffData.length === 0}
-                                                    className="flex items-center gap-2 px-6 py-2 bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 font-medium"
-                                                >
-                                                    {reviewing ? (
-                                                        <>
-                                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                                            Analyzing...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <CheckCircle className="w-4 h-4" />
-                                                            AI Review
-                                                        </>
-                                                    )}
-                                                </button>
-                                            </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Repository Slug</label>
+                                    <input
+                                        type="text"
+                                        value={config.repoSlug}
+                                        onChange={e => setConfig({ ...config, repoSlug: e.target.value })}
+                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                        placeholder="your-repo"
+                                    />
+                                </div>
 
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => setActiveTab('diff')}
-                                                    className={`px-4 py-2 rounded ${activeTab === 'diff' ? 'bg-gray-700' : 'bg-gray-800 hover:bg-gray-700'}`}
-                                                >
-                                                    📝 Diff View
-                                                </button>
-                                                <button
-                                                    onClick={() => setActiveTab('suggestions')}
-                                                    className={`px-4 py-2 rounded ${activeTab === 'suggestions' ? 'bg-gray-700' : 'bg-gray-800 hover:bg-gray-700'}`}
-                                                >
-                                                    💡 AI Suggestions ({aiSuggestions.length})
-                                                </button>
-                                            </div>
-                                        </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Atlassian Account Email</label>
+                                    <input
+                                        type="text"
+                                        value={config.username}
+                                        onChange={e => setConfig({ ...config, username: e.target.value })}
+                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                        placeholder="your-email@example.com"
+                                    />
+                                </div>
 
-                                        <div className="flex flex-1 overflow-hidden">
-                                            {activeTab === 'diff' && (
-                                                <>
-                                                    <div className="w-80 border-r border-gray-800 bg-gray-950 overflow-y-auto">
-                                                        <div className="p-4">
-                                                            <h3 className="font-semibold mb-3 text-gray-300">
-                                                                Changed Files ({diffData.length})
-                                                            </h3>
-                                                            <div className="space-y-1">
-                                                                {diffData.map((file, idx) => (
-                                                                    <div
-                                                                        key={idx}
-                                                                        onClick={() => setSelectedFile(file)}
-                                                                        className={`p-2 rounded cursor-pointer transition ${selectedFile?.fileName === file.fileName ? 'bg-blue-900/50 border border-blue-700' : 'bg-gray-800 hover:bg-gray-700'}`}
-                                                                    >
-                                                                        <div className="flex items-start gap-2">
-                                                                            <FileCode className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400" />
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <div className="text-sm font-medium truncate">{file.fileName}</div>
-                                                                                <div className="flex gap-3 text-xs mt-1">
-                                                                                    <span className="text-green-400">+{file.addedLines}</span>
-                                                                                    <span className="text-red-400">-{file.removedLines}</span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Atlassian API Token</label>
+                                    <input
+                                        type="password"
+                                        value={config.appPassword}
+                                        onChange={e => setConfig({ ...config, appPassword: e.target.value })}
+                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                    />
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" className="text-blue-400 hover:underline">Create token</a>
+                                    </p>
+                                </div>
 
-                                                    <div className="flex-1 flex flex-col overflow-hidden">
-                                                        {selectedFile && (
-                                                            <>
-                                                                <div className="border-b border-gray-800 bg-gray-950 px-4 py-2 flex justify-between items-center">
-                                                                    <div className="font-mono text-sm flex items-center gap-2">
-                                                                        <FileCode className="w-4 h-4" />
-                                                                        {selectedFile.fileName}
-                                                                        <span className="text-xs text-gray-400">
-                                                                            <span className="text-green-400">+{selectedFile.addedLines}</span>
-                                                                            {' '}
-                                                                            <span className="text-red-400">-{selectedFile.removedLines}</span>
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex gap-2">
-                                                                        <button
-                                                                            onClick={() => setDiffViewMode('unified')}
-                                                                            className={`px-3 py-1 rounded text-xs ${diffViewMode === 'unified' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                                                                        >
-                                                                            Unified
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => setDiffViewMode('split')}
-                                                                            className={`px-3 py-1 rounded text-xs flex items-center gap-1 ${diffViewMode === 'split' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                                                                        >
-                                                                            <Columns className="w-3 h-3" />
-                                                                            Split
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">AI Provider</label>
+                                    <select
+                                        value={config.aiProvider}
+                                        onChange={e => setConfig({ ...config, aiProvider: e.target.value })}
+                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                    >
+                                        <option value="gemini">Google Gemini 2.0 Flash (Recommended - Free)</option>
+                                        <option value="openai">OpenAI GPT-4o</option>
+                                    </select>
+                                </div>
 
-                                                                <div className="flex-1 overflow-y-auto bg-gray-800">
-                                                                    {diffViewMode === 'unified' ?
-                                                                        renderUnifiedDiff(selectedFile) :
-                                                                        renderSplitDiff(selectedFile)
-                                                                    }
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </>
-                                            )}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">AI API Key</label>
+                                    <input
+                                        type="password"
+                                        value={config.apiKey}
+                                        onChange={e => setConfig({ ...config, apiKey: e.target.value })}
+                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                    />
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        {config.aiProvider === 'gemini' ?
+                                            <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-blue-400 hover:underline">Get Gemini key (free)</a> :
+                                            <a href="https://platform.openai.com/api-keys" target="_blank" className="text-blue-400 hover:underline">Get OpenAI key</a>
+                                        }
+                                    </p>
+                                </div>
 
-                                            {activeTab === 'suggestions' && (
-                                                <div className="flex-1 overflow-y-auto p-4">
-                                                    <div className="space-y-4">
-                                                        {aiSuggestions.length === 0 ? (
-                                                            <div className="text-center p-12 text-gray-500">
-                                                                Click "AI Review" to get suggestions
-                                                            </div>
-                                                        ) : (
-                                                            aiSuggestions.map((sug, idx) => (
-                                                                <div key={idx} className={`bg-gray-800 rounded-lg p-4 border-l-4 ${sug.severity === 'critical' ? 'border-red-500' :
-                                                                    sug.severity === 'warning' ? 'border-yellow-500' : 'border-blue-500'}`}>
-                                                                    <div className="flex justify-between items-start mb-2">
-                                                                        <div>
-                                                                            <span className={`text-xs font-bold px-2 py-1 rounded ${sug.severity === 'critical' ? 'bg-red-900 text-red-200' :
-                                                                                sug.severity === 'warning' ? 'bg-yellow-900 text-yellow-200' : 'bg-blue-900 text-blue-200'}`}>
-                                                                                {sug.severity.toUpperCase()}
-                                                                            </span>
-                                                                            <span className="ml-2 text-sm text-gray-400">{sug.file}:{sug.line}</span>
-                                                                        </div>
-                                                                        <button
-                                                                            onClick={() => postComment(sug)}
-                                                                            className="flex items-center gap-1 px-3 py-1 bg-blue-600 rounded text-sm hover:bg-blue-700"
-                                                                        >
-                                                                            <MessageSquare className="w-3 h-3" />
-                                                                            Post Comment
-                                                                        </button>
-                                                                    </div>
-                                                                    <div className="text-sm mb-2">
-                                                                        <strong className="text-yellow-300">Issue:</strong> {sug.issue}
-                                                                    </div>
-                                                                    <div className="text-sm mb-3">
-                                                                        <strong className="text-green-300">Suggestion:</strong> {sug.suggestion}
-                                                                    </div>
-                                                                    <textarea
-                                                                        value={commentDraft[sug.line] || sug.suggestion}
-                                                                        onChange={(e) => setCommentDraft({ ...commentDraft, [sug.line]: e.target.value })}
-                                                                        className="w-full p-2 bg-gray-900 border border-gray-700 rounded text-sm"
-                                                                        rows="2"
-                                                                        placeholder="Edit before posting..."
-                                                                    />
-                                                                </div>
-                                                            ))
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
+                                <div className="bg-yellow-900/30 border border-yellow-700 rounded p-3 text-sm text-yellow-200">
+                                    <strong>🔒 Privacy Note:</strong> Your code is sent to {config.aiProvider === 'gemini' ? 'Google' : 'OpenAI'} for review.
+                                    {config.aiProvider === 'gemini' && ' Gemini does not use your prompts to train their models by default.'}
+                                    {config.aiProvider === 'openai' && ' OpenAI offers opt-out via API settings (zero data retention option available).'}
+                                </div>
 
-                                            {activeTab === 'history' && (
-                                                <div className="flex-1 overflow-y-auto p-4">
-                                                    <div className="space-y-4">
-                                                        {reviewHistory.length === 0 ? (
-                                                            <div className="text-center p-12 text-gray-500">
-                                                                No review history yet
-                                                            </div>
-                                                        ) : (
-                                                            reviewHistory.map((item) => (
-                                                                <div key={item.id} className="bg-gray-800 rounded-lg p-4">
-                                                                    <div className="flex justify-between items-start mb-2">
-                                                                        <div>
-                                                                            <h3 className="font-semibold">PR #{item.prId}: {item.prTitle}</h3>
-                                                                            <p className="text-xs text-gray-400">{new Date(item.timestamp).toLocaleString()}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="text-sm text-gray-400">
-                                                                        {item.suggestions.length} suggestions found
-                                                                    </div>
-                                                                </div>
-                                                            ))
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="flex-1 flex items-center justify-center text-gray-500">
-                                        <div className="text-center">
-                                            <History className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                            <p className="text-lg">Select a PR to start reviewing</p>
-                                        </div>
-                                    </div>
-                                )}
+                                <button
+                                    onClick={saveConfig}
+                                    className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-medium"
+                                >
+                                    💾 Save Configuration
+                                </button>
                             </div>
                         </div>
                     </div>
                 );
             }
 
-            ReactDOM.createRoot(document.getElementById('root')).render(<BitbucketPRReviewer />);
-        </script>
-    </body>
+            return (
+                <div className="min-h-screen bg-gray-900 text-white">
+                    <div className="border-b border-gray-800 bg-gray-950">
+                        <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">
+                            <div>
+                                <h1 className="text-2xl font-bold">🤖 AI PR Reviewer</h1>
+                                <p className="text-sm text-gray-400">{config.workspace}/{config.repoSlug}</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setShowConfig(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700"
+                                >
+                                    <Settings className="w-4 h-4" />
+                                    Settings
+                                </button>
+                                <button
+                                    onClick={() => fetchAllPRs()}
+                                    disabled={loading}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
+                    {error && (
+                        <div className="mx-6 mt-4 p-4 bg-red-900/50 border border-red-700 rounded flex items-start gap-2">
+                            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-red-200">{error}</span>
+                        </div>
+                    )}
+
+                    <div className="flex h-[calc(100vh-120px)]">
+                        {/* PR List Sidebar */}
+                        <div className="w-80 border-r border-gray-800 bg-gray-950 overflow-y-auto">
+                            <div className="p-4">
+                                <h2 className="font-semibold mb-3 text-gray-300">Latest 25 Pull Requests</h2>
+
+                                <div className="flex flex-wrap gap-1 mb-4">
+                                    {['all', 'open', 'merged', 'declined', 'draft'].map(filter => (
+                                        <button
+                                            key={filter}
+                                            onClick={() => setPrFilter(filter)}
+                                            className={`px-3 py-1 rounded text-xs font-medium ${
+                                                prFilter === filter
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                            }`}
+                                        >
+                                            {filter.charAt(0).toUpperCase() + filter.slice(1)} ({
+                                                filter === 'all' ? allPRs.length :
+                                                filter === 'draft' ? allPRs.filter(pr => pr.prState === 'OPEN' && pr.description?.includes('[DRAFT]')).length :
+                                                allPRs.filter(pr => pr.prState === filter.toUpperCase()).length
+                                            })
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {loading ? (
+                                    <div className="flex justify-center p-8">
+                                        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {filteredPRs.map(pr => (
+                                            <div
+                                                key={pr.id}
+                                                onClick={() => selectPR(pr)}
+                                                className={`p-3 rounded cursor-pointer transition ${
+                                                    selectedPR?.id === pr.id
+                                                        ? 'bg-blue-900/50 border border-blue-700'
+                                                        : 'bg-gray-800 hover:bg-gray-700'
+                                                }`}
+                                            >
+                                                <div className="flex items-start gap-2 mb-1">
+                                                    <GitPullRequest className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
+                                                        pr.prState === 'MERGED' ? 'text-purple-400' :
+                                                        pr.prState === 'DECLINED' ? 'text-red-400' :
+                                                        'text-green-400'
+                                                    }`} />
+                                                    <div className="flex-1">
+                                                        <div className="font-medium text-sm">#{pr.id} {pr.title}</div>
+                                                        <div className="text-xs text-gray-400 mt-1">
+                                                            {pr.author.display_name} • {new Date(pr.updated_on).toLocaleDateString()}
+                                                        </div>
+                                                        <span className={`inline-block px-2 py-0.5 rounded text-xs mt-1 ${
+                                                            pr.prState === 'MERGED' ? 'bg-purple-900/50 text-purple-300' :
+                                                            pr.prState === 'DECLINED' ? 'bg-red-900/50 text-red-300' :
+                                                            'bg-green-900/50 text-green-300'
+                                                        }`}>
+                                                            {pr.prState}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Main Content */}
+                        <div className="flex-1 flex flex-col">
+                            {selectedPR ? (
+                                <>
+                                    {/* PR Header */}
+                                    <div className="border-b border-gray-800 bg-gray-950 p-4">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <h2 className="text-xl font-bold flex items-center gap-2">
+                                                    <GitPullRequest className="w-5 h-5" />
+                                                    #{selectedPR.id} {selectedPR.title}
+                                                </h2>
+                                                <p className="text-sm text-gray-400 mt-1">{selectedPR.description || 'No description'}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => reviewWithAI()}
+                                                disabled={reviewing || diffData.length === 0}
+                                                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 font-medium"
+                                            >
+                                                {reviewing ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        Analyzing Entire PR...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Sparkles className="w-4 h-4" />
+                                                        AI Review Full PR
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+
+                                        {aiSuggestions.length > 0 && (
+                                            <div className="mt-3 p-3 bg-blue-900/30 border border-blue-700 rounded">
+                                                <p className="text-sm text-blue-200">
+                                                    💡 {aiSuggestions.length} AI suggestions found
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* File Tree and Diff View */}
+                                    <div className="flex flex-1 overflow-hidden">
+                                        {/* File Tree Sidebar */}
+                                        <div className="w-80 border-r border-gray-800 bg-gray-950 overflow-y-auto">
+                                            <div className="p-4">
+                                                <h3 className="font-semibold mb-3 text-gray-300 flex items-center gap-2">
+                                                    <Folder className="w-4 h-4" />
+                                                    Files Changed ({diffData.length})
+                                                </h3>
+                                                {loading ? (
+                                                    <div className="flex justify-center p-8">
+                                                        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-0.5">
+                                                        {renderFileTree(fileTree)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Diff Display */}
+                                        <div className="flex-1 flex flex-col overflow-hidden">
+                                            {selectedFile ? (
+                                                <>
+                                                    <div className="border-b border-gray-800 bg-gray-950 px-4 py-3 flex justify-between items-center">
+                                                        <div className="font-mono text-sm flex items-center gap-2">
+                                                            <FileCode className="w-4 h-4" />
+                                                            {selectedFile.fileName}
+                                                            <span className="text-xs text-gray-400">
+                                                                <span className="text-green-400">+{selectedFile.addedLines}</span>
+                                                                {' '}
+                                                                <span className="text-red-400">-{selectedFile.removedLines}</span>
+                                                            </span>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => reviewWithAI(selectedFile)}
+                                                            disabled={reviewing}
+                                                            className="flex items-center gap-2 px-4 py-1.5 bg-purple-600 rounded hover:bg-purple-700 disabled:opacity-50 text-sm"
+                                                        >
+                                                            {reviewing ? (
+                                                                <>
+                                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                                    Reviewing...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Sparkles className="w-3 h-3" />
+                                                                    AI Review This File
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="flex-1 overflow-y-auto bg-gray-800">
+                                                        <div className="font-mono text-xs">
+                                                            {selectedFile.changes.map((change, i) => (
+                                                                <div
+                                                                    key={i}
+                                                                    className={`flex ${
+                                                                        change.type === 'added' ? 'bg-green-900/30' :
+                                                                        change.type === 'removed' ? 'bg-red-900/30' : ''
+                                                                    }`}
+                                                                >
+                                                                    <span className="px-3 py-1 text-gray-500 select-none w-12 text-right border-r border-gray-700">
+                                                                        {change.oldLine || ''}
+                                                                    </span>
+                                                                    <span className="px-3 py-1 text-gray-500 select-none w-12 text-right border-r border-gray-700">
+                                                                        {change.newLine || ''}
+                                                                    </span>
+                                                                    <span className={`px-3 py-1 flex-1 ${
+                                                                        change.type === 'added' ? 'text-green-300' :
+                                                                        change.type === 'removed' ? 'text-red-300' : 'text-gray-300'
+                                                                    }`}>
+                                                                        {change.type === 'added' ? '+' : change.type === 'removed' ? '-' : ' '}
+                                                                        {change.content}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* AI Suggestions for this file */}
+                                                    {aiSuggestions.filter(s => s.file === selectedFile.fileName).length > 0 && (
+                                                        <div className="border-t border-gray-800 bg-gray-900 p-4 max-h-64 overflow-y-auto">
+                                                            <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                                                <Sparkles className="w-4 h-4 text-purple-400" />
+                                                                AI Suggestions for this file
+                                                            </h4>
+                                                            <div className="space-y-2">
+                                                                {aiSuggestions.filter(s => s.file === selectedFile.fileName).map((sug, idx) => (
+                                                                    <div key={idx} className={`bg-gray-800 rounded p-3 border-l-4 ${
+                                                                        sug.severity === 'critical' ? 'border-red-500' :
+                                                                        sug.severity === 'warning' ? 'border-yellow-500' : 'border-blue-500'
+                                                                    }`}>
+                                                                        <div className="flex justify-between items-start mb-2">
+                                                                            <span className={`text-xs font-bold px-2 py-1 rounded ${
+                                                                                sug.severity === 'critical' ? 'bg-red-900 text-red-200' :
+                                                                                sug.severity === 'warning' ? 'bg-yellow-900 text-yellow-200' : 'bg-blue-900 text-blue-200'
+                                                                            }`}>
+                                                                                {sug.severity.toUpperCase()}
+                                                                            </span>
+                                                                            <span className="text-xs text-gray-400">Line {sug.line}</span>
+                                                                        </div>
+                                                                        <div className="text-sm text-gray-300">
+                                                                            <strong className="text-yellow-300">Issue:</strong> {sug.issue}
+                                                                        </div>
+                                                                        <div className="text-sm text-gray-300 mt-1">
+                                                                            <strong className="text-green-300">Fix:</strong> {sug.suggestion}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <div className="flex-1 flex items-center justify-center text-gray-500">
+                                                    <div className="text-center">
+                                                        <FileCode className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                                                        <p className="text-lg">Select a file to view changes</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex-1 flex items-center justify-center text-gray-500">
+                                    <div className="text-center">
+                                        <GitPullRequest className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                                        <p className="text-lg">Select a PR to start reviewing</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<BitbucketPRReviewer />);
+    </script>
+</body>
 </html>
