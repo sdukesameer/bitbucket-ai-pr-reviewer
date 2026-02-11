@@ -94,12 +94,8 @@
                 };
 
                 const getAuthHeaders = (cfg = config) => {
-                    if (cfg.authType === 'bearer-token') {
-                        return { Authorization: `Bearer ${cfg.appPassword}` };
-                    } else {
-                        const auth = btoa(`${cfg.username}:${cfg.appPassword}`);
-                        return { Authorization: `Basic ${auth}` };
-                    }
+                    const auth = btoa(`${cfg.username}:${cfg.appPassword}`);
+                    return { Authorization: `Basic ${auth}` };
                 };
 
                 const fetchPRs = async (cfg = config) => {
@@ -341,27 +337,15 @@ Return as JSON array:
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">Authentication Type</label>
-                                        <select
-                                            value={config.authType}
-                                            onChange={e => setConfig({ ...config, authType: e.target.value })}
-                                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                        >
-                                            <option value="app-password">App Password (Username + Password)</option>
-                                            <option value="bearer-token">API Token (Bearer Token)</option>
-                                        </select>
-                                    </div>
-
                                     {config.authType === 'app-password' && (
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-300 mb-1">Bitbucket Username</label>
+                                            <label className="block text-sm font-medium text-gray-300 mb-1">Atlassian Account Email</label>
                                             <input
                                                 type="text"
                                                 value={config.username}
                                                 onChange={e => setConfig({ ...config, username: e.target.value })}
                                                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                                placeholder="md_sameer_cloudkaptan"
+                                                placeholder="md.sameer@cloudkaptan.com"
                                             />
                                         </div>
                                     )}
