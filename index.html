@@ -337,34 +337,26 @@ Return as JSON array:
                                         />
                                     </div>
 
-                                    {config.authType === 'app-password' && (
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-300 mb-1">Atlassian Account Email</label>
-                                            <input
-                                                type="text"
-                                                value={config.username}
-                                                onChange={e => setConfig({ ...config, username: e.target.value })}
-                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                                placeholder="md.sameer@cloudkaptan.com"
-                                            />
-                                        </div>
-                                    )}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">Atlassian Account Email</label>
+                                        <input
+                                            type="text"
+                                            value={config.username}
+                                            onChange={e => setConfig({ ...config, username: e.target.value })}
+                                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                            placeholder="md.sameer@cloudkaptan.com"
+                                        />
+                                    </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">
-                                            {config.authType === 'app-password' ? 'Bitbucket App Password' : 'Bitbucket API Token'}
-                                        </label>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">Atlassian API Token</label>
                                         <input
                                             type="password"
                                             value={config.appPassword}
                                             onChange={e => setConfig({ ...config, appPassword: e.target.value })}
                                             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
                                         />
-                                        <p className="text-xs text-gray-400 mt-1">
-                                            {config.authType === 'app-password'
-                                                ? 'Create at: Bitbucket Settings → App passwords (needs pullrequest:read & write)'
-                                                : 'Create at: Bitbucket Settings → Personal access tokens'}
-                                        </p>
+                                        <p className="text-xs text-gray-400 mt-1">Create at: https://id.atlassian.com/manage-profile/security/api-tokens</p>
                                     </div>
 
                                     <div>
